@@ -1,5 +1,6 @@
 package com.example.messaggingblemesh.network_mesh
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -37,6 +38,7 @@ class BleMeshService: Service(){
         meshDatabase = MeshDatabase.getDatabase(applicationContext)
         router = MeshApplicationRouter(nodeId, bleConnection, meshDatabase, cryptoHelper)
         bleConnection.router = router
+        routerInstance = router
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -68,7 +70,7 @@ class BleMeshService: Service(){
     }
 
     fun getNodeId(): String{
-        val sharedPref = getSharedPreferences("MeshPreferences", Context.MODE_PRIVATE)
+        val sharedPref = getSharedPreferences("MeshPreferences", MODE_PRIVATE)
         var nodeId = sharedPref.getString("DeviceNodeId", null)
 
         if(nodeId == null){
@@ -79,4 +81,9 @@ class BleMeshService: Service(){
         return nodeId
     }
 
+    companion object {
+        @SuppressLint("StaticFieldLeak")
+        var routerInstance: MeshApplicationRouter? = null
+    }
 }
+

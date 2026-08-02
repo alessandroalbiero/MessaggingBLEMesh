@@ -31,8 +31,8 @@ object CryptoHelper {
         return Base64.encodeToString(key.encoded, Base64.NO_WRAP)
     }
 
-    fun getPublicKeyFromBase64(key_converted: String): PublicKey{
-        val keyBytes = Base64.decode(key_converted, Base64.NO_WRAP)
+    fun getPublicKeyFromBase64(keyConverted: String): PublicKey{
+        val keyBytes = Base64.decode(keyConverted, Base64.NO_WRAP)
         val spec = X509EncodedKeySpec(keyBytes)
         return KeyFactory.getInstance(EC_ALGORITHM).generatePublic(spec)
     }

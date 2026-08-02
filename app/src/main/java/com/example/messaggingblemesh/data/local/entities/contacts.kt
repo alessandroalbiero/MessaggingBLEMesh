@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class Contact(
     @PrimaryKey val contactId: String,
     val username: String,
+    val name: String,
     val contactPublicKeyBase64: String,
     val sharedSecretSessionKeyBase64: String,
     val keyExchangeTimestamp: Long

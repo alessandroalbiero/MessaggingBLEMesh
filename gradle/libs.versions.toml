@@ -1,6 +1,7 @@
 [versions]
 agp = "9.3.0-alpha09"
 coilNetworkOkhttp = "3.5.0"
+core = "3.5.4"
 coreKtx = "1.19.0"
 credentials = "1.6.0"
 credentialsPlayServicesAuth = "1.6.0"
@@ -17,11 +18,14 @@ composeBom = "2026.06.00"
 navigationComposeVersion = "2.7.7"
 paletteKtx = "1.0.0"
 playServicesMlkitSubjectSegmentation = "16.0.0-beta1"
+qrgenerator = "1.0.3"
+qrgeneratorVersion = "1.0.1"
 roomCompiler = "2.8.4"
 roomRuntime = "2.8.4"
 ui = "1.11.3"
 ksp = "2.3.9"
 composeMaterial = "1.6.2"
+uiTestJunit4 = "1.11.4"
 visionCommon = "17.3.0"
 cameraCore = "1.6.1"
 navigationCompose = "2.9.8"
@@ -29,8 +33,13 @@ navigationRuntimeKtx = "2.9.8"
 firebaseAuthKtx = "24.1.0"
 foundation = "1.11.3"
 playServicesLocation = "21.4.0"
+zxingAndroidEmbedded = "4.3.0"
+cameraLifecycle = "1.6.1"
+cameraView = "1.6.1"
+playServicesMlkitBarcodeScanning = "18.3.1"
 
 [libraries]
+androidmads-qrgenerator = { module = "com.github.androidmads:QRGenerator", version.ref = "qrgeneratorVersion" }
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
@@ -41,8 +50,10 @@ androidx-palette-ktx = { module = "androidx.palette:palette-ktx", version.ref = 
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomCompiler" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomCompiler" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
+androidx-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "uiTestJunit4" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilNetworkOkhttp" }
 coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coilNetworkOkhttp" }
+core = { module = "com.google.zxing:core", version.ref = "core" }
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
@@ -64,6 +75,7 @@ androidx-compose-material3 = { group = "androidx.compose.material3", name = "mat
 androidx-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
 androidx-compose-material = { group = "androidx.wear.compose", name = "compose-material", version.ref = "composeMaterial" }
 play-services-mlkit-subject-segmentation = { module = "com.google.android.gms:play-services-mlkit-subject-segmentation", version.ref = "playServicesMlkitSubjectSegmentation" }
+qrgenerator = { module = "androidmads.library.qrgenerator:QRGenerator", version.ref = "qrgenerator" }
 vision-common = { group = "com.google.mlkit", name = "vision-common", version.ref = "visionCommon" }
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraCore" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
@@ -71,6 +83,10 @@ androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navig
 firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx", version.ref = "firebaseAuthKtx" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+zxing-android-embedded = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxingAndroidEmbedded" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "cameraLifecycle" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "cameraView" }
+play-services-mlkit-barcode-scanning = { group = "com.google.android.gms", name = "play-services-mlkit-barcode-scanning", version.ref = "playServicesMlkitBarcodeScanning" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
