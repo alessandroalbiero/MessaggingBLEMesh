@@ -2,7 +2,7 @@ package com.example.messaggingblemesh.qrcode
 
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import coil3.Bitmap
+import android.graphics.Bitmap
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
 import com.journeyapps.barcodescanner.BarcodeEncoder

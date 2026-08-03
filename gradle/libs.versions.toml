@@ -1,5 +1,7 @@
 [versions]
 agp = "9.3.0-alpha09"
+cameraCamera2 = "1.3.4"
+cameraVersion = "1.6.1"
 coilNetworkOkhttp = "3.5.0"
 core = "3.5.4"
 coreKtx = "1.19.0"
@@ -40,6 +42,8 @@ playServicesMlkitBarcodeScanning = "18.3.1"
 
 [libraries]
 androidmads-qrgenerator = { module = "com.github.androidmads:QRGenerator", version.ref = "qrgeneratorVersion" }
+androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraVersion" }
+androidx-camera-camera2-v134 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCamera2" }
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }

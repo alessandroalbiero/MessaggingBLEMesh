@@ -39,9 +39,10 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.camera2.v134)
     implementation(libs.androidx.camera.view)
+    implementation(libs.androidx.camera.core)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.navigation.compose)

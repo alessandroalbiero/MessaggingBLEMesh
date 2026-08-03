@@ -34,6 +34,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,7 +119,15 @@ fun QrCodeBottomSheet(
 
                 Button(
                     onClick = {
-                        cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                        val permissionCheckResult = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.CAMERA
+                        )
+                        if (permissionCheckResult == PackageManager.PERMISSION_GRANTED) {
+                            isCameraOpen = true
+                        } else {
+                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
                     },
                     Modifier.background(Color.Transparent)
                 ) {

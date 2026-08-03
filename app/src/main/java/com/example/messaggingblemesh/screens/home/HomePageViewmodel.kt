@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.messaggingblemesh.data.local.MeshDatabase
 import com.example.messaggingblemesh.data.local.entities.Contact
+import com.example.messaggingblemesh.network_mesh.IdsFeaturesExtractor
 import com.example.messaggingblemesh.security.CryptoHelper
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -60,6 +61,12 @@ class HomePageViewmodel(application: Application) : AndroidViewModel(application
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+    }
+
+    fun exportCsv(context: Context){
+        viewModelScope.launch(Dispatchers.IO) {
+            IdsFeaturesExtractor.exportCsv(context)
         }
     }
 }

@@ -11,6 +11,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -22,7 +25,7 @@
         android:theme="@style/Theme.MessaggingBLEMesh">
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.example.messaggingblemesh.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MessaggingBLEMesh"
@@ -35,7 +38,7 @@
         </activity>
 
         <service
-            android:name=".network_mesh.BleMeshService"
+            android:name="com.example.messaggingblemesh.network_mesh.BleMeshService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />

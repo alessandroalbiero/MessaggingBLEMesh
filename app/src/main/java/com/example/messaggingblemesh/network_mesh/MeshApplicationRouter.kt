@@ -1,5 +1,6 @@
 package com.example.messaggingblemesh.network_mesh
 
+import android.content.Context
 import android.util.Log
 import com.example.messaggingblemesh.data.local.MeshDatabase
 import com.example.messaggingblemesh.data.local.entities.Message
@@ -56,6 +57,9 @@ class MeshApplicationRouter(
                             senderId = meshPacket.sourceId,
                             timestamp = meshPacket.timestamp
                         )
+
+                        val featuresForAi = IdsFeaturesExtractor.getFeaturesFromPacket(meshPacket)
+
                         database.messageDao().insertMessage(message)
                         onMessageReceived?.invoke(message)
                         Log.d("MeshRouter", "Messaggio ricevuto e salvato: ${message.messageId}")
@@ -96,6 +100,5 @@ class MeshApplicationRouter(
             bleConnection.broadcastToNeighbors(gson.toJson(packet))
         }
     }
-
 
 }

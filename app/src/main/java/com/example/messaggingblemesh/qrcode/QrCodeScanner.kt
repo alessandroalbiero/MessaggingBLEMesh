@@ -36,7 +36,10 @@ fun QrScannerView(onQrScanned: (String) -> Unit) {
         modifier = Modifier.fillMaxSize(),
         factory = { ctx ->
             val previewView = PreviewView(ctx)
-
+            previewView.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+            previewView
+        },
+        update = { previewView ->
             cameraProviderFuture.addListener({
                 val cameraProvider = cameraProviderFuture.get()
                 val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -54,7 +57,7 @@ fun QrScannerView(onQrScanned: (String) -> Unit) {
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
                     .also {
-                        it.setAnalyzer(ContextCompat.getMainExecutor(ctx)) { imageProxy ->
+                        it.setAnalyzer(ContextCompat.getMainExecutor(context)) { imageProxy ->
                             val mediaImage = imageProxy.image
                             if (mediaImage != null && isScanning) {
                                 val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
@@ -90,8 +93,7 @@ fun QrScannerView(onQrScanned: (String) -> Unit) {
                         e.printStackTrace()
                         Log.e("Scanner", "Non possibile avviare la telecamera")
                     }
-            }, ContextCompat.getMainExecutor(ctx))
-            previewView
+            }, ContextCompat.getMainExecutor(context))
         }
     )
 }
