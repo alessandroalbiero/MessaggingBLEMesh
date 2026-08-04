@@ -76,12 +76,12 @@ class BleMeshService: Service(){
     }
 
     fun getNodeId(): String{
-        val sharedPref = getSharedPreferences("MeshPreferences", MODE_PRIVATE)
-        var nodeId = sharedPref.getString("DeviceNodeId", null)
+        val sharedPref = getSharedPreferences("MeshPrefs", MODE_PRIVATE)
+        var nodeId = sharedPref.getString("user_id", null)
 
         if(nodeId == null){
             nodeId = UUID.randomUUID().toString()
-            sharedPref.edit { putString("DeviceNodeId", nodeId) }
+            sharedPref.edit { putString("user_id", nodeId) }
         }
 
         return nodeId
