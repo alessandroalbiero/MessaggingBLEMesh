@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MessageDao {
-    @Query("SELECT * FROM messages WHERE senderId = :chatUserId ORDER BY timestamp ASC")
+    @Query("SELECT * FROM messages WHERE senderId = :chatUserId OR destinationId = :chatUserId ORDER BY timestamp ASC")
     fun getChatMessagesLive(chatUserId: String): Flow<List<Message>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
