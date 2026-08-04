@@ -55,6 +55,7 @@ class MeshApplicationRouter(
                             content = decryptedText,
                             messageId = meshPacket.packetId,
                             senderId = meshPacket.sourceId,
+                            destinationId = meshPacket.destId,
                             timestamp = meshPacket.timestamp
                         )
 
