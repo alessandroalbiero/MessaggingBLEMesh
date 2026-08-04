@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class Message(
     @PrimaryKey val messageId: String,
     val senderId: String,
+    val destinationId: String,
     val content: String,
     val timestamp: Long = System.currentTimeMillis()
 )

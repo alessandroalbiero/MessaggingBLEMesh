@@ -19,10 +19,8 @@ import android.content.Context
 import android.os.Build
 import android.os.ParcelUuid
 import android.util.Log
-import androidx.core.os.postDelayed
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import java.util.logging.Handler
 
 @SuppressLint("MissingPermission")
 class BleConnection(private val context: Context) {
@@ -50,6 +48,16 @@ class BleConnection(private val context: Context) {
         }
     }
 
+    private val advertiseCallback = object : AdvertiseCallback() {
+        override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
+            Log.d("BLELayer", "Advertising MESH BLE avviato con successo")
+        }
+
+        override fun onStartFailure(errorCode: Int) {
+            Log.e("BLELayer", "Advertising MESH BLE fallito [$errorCode]")
+        }
+    }
+
     fun startServerAdvertising(){
         if(bluetoothAdapter == null || !bluetoothAdapter.isEnabled) return
 
@@ -73,15 +81,21 @@ class BleConnection(private val context: Context) {
                     value
                 )
 
-                if(characteristic?.uuid == MESH_CHARACTERISTIC_UUID){
+                if (characteristic?.uuid == MESH_CHARACTERISTIC_UUID) {
                     val receivedJsonPacket = String(value, Charsets.UTF_8)
                     Log.d("BLELayer", "Pacchetto ricevuto da ${device.address}")
 
-                    router?.handlerDataReceived(receivedJsonPacket)
-
-                    if(responseNeeded){
-                        gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, value)
+                    if (responseNeeded) {
+                        try {
+                            gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, value)
+                        } catch (e: SecurityException) {
+                            Log.e("BLELayer", "Impossibile inviare la risposta GATT: Permessi negati")
+                        } catch (e: Exception) {
+                            Log.e("BLELayer", "Errore hardware durante sendResponse", e)
+                        }
                     }
+
+                    router?.handlerDataReceived(receivedJsonPacket)
                 }
             }
         })
@@ -108,19 +122,16 @@ class BleConnection(private val context: Context) {
             .addServiceUuid(ParcelUuid(MESH_SERVICE_UUID))
             .build()
 
-        advertiser?.startAdvertising(settings, data, object : AdvertiseCallback() {
-            override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
-                Log.d("BLELayer", "Advertising MESH BLE avviato con successo")
-            }
-
-            override fun onStartFailure(errorCode: Int) {
-                Log.e("BLELayer", "Advertising MESH BLE fallito [$errorCode]")
-            }
-        })
+        advertiser?.startAdvertising(settings, data, advertiseCallback)
     }
 
     fun stopAdvertising() {
-        bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback)
+        val advertiser = bluetoothAdapter?.bluetoothLeAdvertiser
+        try {
+            advertiser?.stopAdvertising(advertiseCallback)
+        }catch (e: SecurityException){
+            Log.e("BLELayer", "Permessi mancanti per fermare l'advertising")
+        }
         gattServer?.close()
         gattServer = null
     }
@@ -180,24 +191,30 @@ class BleConnection(private val context: Context) {
                         if(status == BluetoothGatt.GATT_SUCCESS){
                             val service = gatt?.getService(MESH_SERVICE_UUID)
                             val characteristic = service?.getCharacteristic(MESH_CHARACTERISTIC_UUID)
+
                             if(characteristic != null) {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    gatt.writeCharacteristic(
-                                        characteristic,
-                                        payloadBytes,
-                                        BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-                                    )
-                                } else {
-                                    @Suppress("DEPRECATION")
-                                    characteristic.value = payloadBytes
-                                    characteristic.writeType =
-                                        BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-                                    @Suppress("DEPRECATION")
-                                    gatt.writeCharacteristic(characteristic)
+                                try {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        val statusCode = gatt.writeCharacteristic(
+                                            characteristic,
+                                            payloadBytes,
+                                            BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                                        )
+                                        Log.d("BLELayer", "Tentativo di scrittura Android 13+. Status: $statusCode")
+                                    } else {
+                                        @Suppress("DEPRECATION")
+                                        characteristic.value = payloadBytes
+                                        characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                                        @Suppress("DEPRECATION")
+                                        val success = gatt.writeCharacteristic(characteristic)
+                                        Log.d("BLELayer", "Tentativo di scrittura Legacy. Esito: $success")
+                                    }
+                                } catch (e: SecurityException) {
+                                    Log.e("BLELayer", "Permessi Bluetooth negati durante la scrittura!")
+                                    gatt.disconnect()
                                 }
-                            }
-                            else{
-                                Log.d("BLELayer", "Caratteristica non trovata, chiusura connessione...")
+                            } else {
+                                Log.d("BLELayer", "Caratteristica non trovata sul vicino ${gatt?.device?.address}, chiusura connessione...")
                                 gatt?.disconnect()
                             }
                         } else {

@@ -18,7 +18,7 @@ class SingleChatViewmodel(application: Application, private val contactId: Strin
     private val meshDB = MeshDatabase.getDatabase(application)
 
     val myNodeId = application.getSharedPreferences("MeshPrefs", Application.MODE_PRIVATE)
-        .getString("node_id", "") ?: ""
+        .getString("user_id", "") ?: ""
     val messages: Flow<List<Message>> = meshDB.messageDao().getChatMessagesLive(contactId)
 
     private val _contact = MutableStateFlow<Contact?>(null)
@@ -39,6 +39,7 @@ class SingleChatViewmodel(application: Application, private val contactId: Strin
         val message = Message(
             messageId = java.util.UUID.randomUUID().toString(),
             senderId = myNodeId,
+            destinationId = contactId,
             content = payload,
             timestamp = System.currentTimeMillis()
         )
