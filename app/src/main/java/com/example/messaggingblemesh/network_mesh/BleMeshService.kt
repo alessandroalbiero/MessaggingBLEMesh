@@ -56,6 +56,8 @@ class BleMeshService: Service(){
         } else {
             startForeground(1, notification)
         }
+        bleConnection.stopAdvertising()
+        bleConnection.stopScanningForNeighbors()
 
         bleConnection.startServerAdvertising()
         bleConnection.startScanningForNeighbors()

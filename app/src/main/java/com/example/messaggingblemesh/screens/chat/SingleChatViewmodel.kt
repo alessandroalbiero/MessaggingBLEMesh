@@ -1,7 +1,6 @@
 package com.example.messaggingblemesh.screens.chat
 
 import android.app.Application
-import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -15,7 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class SingleChatViewmodel(application: Application, private val contactId: String) : AndroidViewModel(application){
+class SingleChatViewmodel(application: Application, private val contactId: String) : AndroidViewModel(application) {
     private val meshDB = MeshDatabase.getDatabase(application)
 
     val myNodeId = application.getSharedPreferences("MeshPrefs", Application.MODE_PRIVATE)
@@ -26,14 +25,13 @@ class SingleChatViewmodel(application: Application, private val contactId: Strin
     val contact: StateFlow<Contact?> = _contact
 
 
-
     init {
         viewModelScope.launch {
             _contact.value = meshDB.contactDao().getUserById(contactId)
         }
     }
 
-    fun sendMessage(payload: String, isAttack: Boolean = false){
+    fun sendMessage(payload: String, isAttack: Boolean = false, onSuccess: () -> Unit = {}) {
         if (payload.isBlank()) return
 
         BleMeshService.routerInstance?.sendNewMessage(contactId, payload, isAttack)
@@ -46,12 +44,20 @@ class SingleChatViewmodel(application: Application, private val contactId: Strin
         )
         viewModelScope.launch {
             meshDB.messageDao().insertMessage(message)
+            onSuccess()
         }
     }
 
-    class ChatViewModelFactory(private val application: Application, private val contactId: String) : ViewModelProvider.Factory {
+    class ChatViewModelFactory(
+        private val application: Application,
+        private val contactId: String
+    ) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return SingleChatViewmodel(application, contactId) as T
+            if (modelClass.isAssignableFrom(SingleChatViewmodel::class.java)) {
+                return SingleChatViewmodel(application, contactId) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
 }

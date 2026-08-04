@@ -1,6 +1,5 @@
 package com.example.messaggingblemesh.screens.chat
 
-import android.R.attr.onClick
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -15,7 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -93,8 +91,10 @@ fun SingleChatPage(
                     modifier = Modifier.weight(1f),
                     placeholder = { Text("Scrivi un messaggio...") },
                     colors = TextFieldDefaults.colors(
-                        Color.Transparent,
-                        Color.Transparent
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     ),
                     shape = RoundedCornerShape(24.dp)
                 )
@@ -109,9 +109,11 @@ fun SingleChatPage(
                         .combinedClickable(
                             onClick = {
                                 viewModel.sendMessage(content, false)
+                                content = ""
                             },
                             onLongClick = {
-                                viewModel.sendMessage("[ATTACCO FLOODING] " + content, true)
+                                viewModel.sendMessage("[ATTACCO FLOODING] $content", true)
+                                content = ""
                             }
                         ),
                     contentAlignment = Alignment.Center
