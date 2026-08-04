@@ -14,22 +14,27 @@ object IdsFeaturesExtractor{
     private const val WINDOW_SIZE = 20
     private const val BIN_SIZE = 50L
     private val windowMap = mutableMapOf<String, MutableList<Packet>>()
+    private val globalWindow = mutableListOf<Packet>()
     private val dataset = mutableListOf<String>()
 
     init {
-        dataset.add("payload_entropy,piat_entropy,payload_size_variance,app_ttl,label")
+        dataset.add("payload_entropy,piat_entropy,payload_size_variance,app_ttl,global_piat_entropy,label")
     }
 
     fun getFeaturesFromPacket(packet: Packet): FloatArray? {
         val window = windowMap.getOrPut(packet.sourceId) { mutableListOf() }
         window.add(packet)
+        globalWindow.add(packet)
 
         if(window.size > WINDOW_SIZE) {
             window.removeAt(0)
         }
-        if (window.size == WINDOW_SIZE){
+        if(globalWindow.size > WINDOW_SIZE) {
+            globalWindow.removeAt(0)
+        }
+        if (globalWindow.size == WINDOW_SIZE){
             val piats = mutableListOf<Long>()
-            for(i in 1 until WINDOW_SIZE){
+            for(i in 1 until window.size){
                 piats.add(window[i].timestamp - window[i - 1].timestamp)
             }
             val payloadBytes = packet.encryptedPayload.toByteArray(Charsets.UTF_8)
@@ -38,9 +43,15 @@ object IdsFeaturesExtractor{
             val sizeVariance = calculateSizeVariance(window.map{it.payloadSize.toDouble()})
             val appTtl = packet.ttl.toFloat()
 
-            val csvRow = "$payloadEntropy,$piatEntropy,$sizeVariance,$appTtl,${packet.label}"
+            val globalPiats = mutableListOf<Long>()
+            for(i in 1 until globalWindow.size){
+                globalPiats.add(globalWindow[i].timestamp - globalWindow[i - 1].timestamp)
+            }
+            val globalPiatEntropy = calculatePiatEntropy(globalPiats)
+
+            val csvRow = "$payloadEntropy,$piatEntropy,$sizeVariance,$appTtl,$globalPiatEntropy,${packet.label}"
             dataset.add(csvRow)
-            return floatArrayOf(payloadEntropy.toFloat(), piatEntropy.toFloat(), sizeVariance.toFloat(), appTtl)
+            return floatArrayOf(payloadEntropy.toFloat(), piatEntropy.toFloat(), sizeVariance.toFloat(), globalPiatEntropy.toFloat(), appTtl)
         }
         return null
     }
