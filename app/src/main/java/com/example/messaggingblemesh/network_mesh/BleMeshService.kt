@@ -21,6 +21,7 @@ class BleMeshService: Service(){
     private lateinit var bleConnection: BleConnection
     private lateinit var meshDatabase: MeshDatabase
     private var nodeId =""
+    private var isServiceRunning = false
 
     override fun onCreate(){
         super.onCreate()
@@ -56,11 +57,12 @@ class BleMeshService: Service(){
         } else {
             startForeground(1, notification)
         }
-        bleConnection.stopAdvertising()
-        bleConnection.stopScanningForNeighbors()
 
-        bleConnection.startServerAdvertising()
-        bleConnection.startScanningForNeighbors()
+        if(!isServiceRunning){
+            bleConnection.startServerAdvertising()
+            bleConnection.startScanningForNeighbors()
+            isServiceRunning = true
+        }
 
         return START_STICKY
     }

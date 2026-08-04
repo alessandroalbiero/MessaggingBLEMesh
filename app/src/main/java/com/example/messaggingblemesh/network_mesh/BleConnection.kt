@@ -160,18 +160,17 @@ class BleConnection(private val context: Context) {
                 @Suppress("DEPRECATION")
                 neighbor.connectGatt(context, false, object : BluetoothGattCallback() {
                     override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
+                        if (status != BluetoothGatt.GATT_SUCCESS) {
+                            Log.e("BLELayer", "Errore di connessione con ${neighbor.address}: $status")
+                            gatt?.close()
+                        }
                         if (newState == BluetoothProfile.STATE_CONNECTED) {
                             Log.d(
                                 "BLELayer",
                                 "Connessione avvenuta con ${neighbor.address}, si richiede allargamento MTU..."
                             )
                             gatt?.requestMtu(512)
-                        } else if (status != BluetoothGatt.GATT_SUCCESS) {
-                            Log.e("BLELayer", "Errore di connessione con ${neighbor.address}: $status")
-                            ownNeighbors.remove(neighbor)
-                            gatt?.disconnect()
-                            gatt?.close()
-                        } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                        }else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                             Log.d("BLELayer", "Disconnessione da ${neighbor.address}")
                             gatt?.close()
                         }
