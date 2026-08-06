@@ -38,6 +38,7 @@ class MeshApplicationRouter(
             }
 
             database.packetDao().insertPacketLog(meshPacket)
+            val featuresForAi = IdsFeaturesExtractor.getFeaturesFromPacket(meshPacket)
 
             if (meshPacket.destId == nodeId) {
                 Log.d("MeshRouter", "Pacchetto arrivato al destinatario!")
@@ -59,7 +60,7 @@ class MeshApplicationRouter(
                             timestamp = meshPacket.timestamp
                         )
 
-                        val featuresForAi = IdsFeaturesExtractor.getFeaturesFromPacket(meshPacket)
+
 
                         database.messageDao().insertMessage(message)
                         onMessageReceived?.invoke(message)

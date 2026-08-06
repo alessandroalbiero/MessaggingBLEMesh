@@ -33,6 +33,7 @@ class BleConnection(private val context: Context) {
     private var gattServer: BluetoothGattServer? = null
 
     private val ownNeighbors = ConcurrentHashMap.newKeySet<BluetoothDevice>()
+    private val esp32ForThesisAddress ="78:1C:3C:2D:30:4E"
     var router: MeshApplicationRouter? = null
 
     private val scanCallback= object : ScanCallback(){
@@ -62,6 +63,7 @@ class BleConnection(private val context: Context) {
         if(bluetoothAdapter == null || !bluetoothAdapter.isEnabled) return
 
         gattServer = bluetoothManager.openGattServer(context, object : BluetoothGattServerCallback(){
+            private val preparedData = java.util.concurrent.ConcurrentHashMap<String, ByteArray>()
             override fun onCharacteristicWriteRequest(
                 device: BluetoothDevice,
                 requestId: Int,
@@ -82,21 +84,60 @@ class BleConnection(private val context: Context) {
                 )
 
                 if (characteristic?.uuid == MESH_CHARACTERISTIC_UUID) {
-                    val receivedJsonPacket = String(value, Charsets.UTF_8)
-                    Log.d("BLELayer", "Pacchetto ricevuto da ${device.address}")
 
-                    if (responseNeeded) {
-                        try {
-                            gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, value)
-                        } catch (e: SecurityException) {
-                            Log.e("BLELayer", "Impossibile inviare la risposta GATT: Permessi negati")
-                        } catch (e: Exception) {
-                            Log.e("BLELayer", "Errore hardware durante sendResponse", e)
+                    if(preparedWrite){
+                        val concurrentData = preparedData[device.address]?: ByteArray(0)
+                        preparedData[device.address] = concurrentData + value
+
+                        if (responseNeeded){
+                            try{gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, value) }catch (e: Exception) {}
                         }
                     }
+                    else {
+                        val receivedJsonPacket = String(value, Charsets.UTF_8)
+                        Log.d("BLELayer", "Pacchetto ricevuto da ${device.address}")
 
-                    router?.handlerDataReceived(receivedJsonPacket)
+                        if (responseNeeded) {
+                            try {
+                                gattServer?.sendResponse(
+                                    device,
+                                    requestId,
+                                    BluetoothGatt.GATT_SUCCESS,
+                                    offset,
+                                    value
+                                )
+                            } catch (e: SecurityException) {
+                                Log.e(
+                                    "BLELayer",
+                                    "Impossibile inviare la risposta GATT: Permessi negati"
+                                )
+                            } catch (e: Exception) {
+                                Log.e("BLELayer", "Errore hardware durante sendResponse", e)
+                            }
+                        }
+                        router?.handlerDataReceived(receivedJsonPacket)
+                    }
                 }
+            }
+
+            override fun onExecuteWrite(
+                device: BluetoothDevice,
+                requestId: Int,
+                execute: Boolean
+            ) {
+                super.onExecuteWrite(device, requestId, execute)
+
+                if(execute){
+                    val data = preparedData[device.address]
+                    if(data != null){
+                        val receivedJson = String(data, Charsets.UTF_8)
+                        Log.d("BLELayer", "Pacchetto lungo senza canale allargato inviato e ricomposto")
+                        router?.handlerDataReceived(receivedJson)
+                    }
+                }
+
+                preparedData.remove(device.address)
+                try{gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null) }catch (e: Exception) {}
             }
         })
 
@@ -156,7 +197,20 @@ class BleConnection(private val context: Context) {
 
     fun broadcastToNeighbors(jpayload: String){
         val payloadBytes = jpayload.toByteArray(Charsets.UTF_8)
-        ownNeighbors.toList().forEach { neighbor ->
+
+        val esp32Node = ownNeighbors.find { it.address.equals(esp32ForThesisAddress) }
+
+        val targetNeighbors = if(esp32Node != null) {
+            Log.d(
+                "BLELayer",
+                "TOPOLOGIA FORZATA: esp32 presenete nella rete, routin intermedio filtrato!"
+            )
+            listOf(esp32Node)
+        }else{
+            Log.d("BLELayer", "TOPOLOGIA STANDARD: esp32 lontano o spento, Broadcast standard verso tutti i vicini")
+            ownNeighbors.toList()
+        }
+        targetNeighbors.toList().forEach { neighbor ->
                 @Suppress("DEPRECATION")
                 neighbor.connectGatt(context, false, object : BluetoothGattCallback() {
                     override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
@@ -183,6 +237,7 @@ class BleConnection(private val context: Context) {
                         } else {
                             Log.e("BLELayer", "Fallimento cambio MTU per ${gatt?.device?.address}")
                             gatt?.disconnect()
+                            gatt?.close()
                         }
                     }
 
