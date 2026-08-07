@@ -23,7 +23,7 @@ class MeshApplicationRouter(
 
     var onMessageReceived: ((Message) -> Unit)? = null
 
-    fun handlerDataReceived(jdata: String){
+    fun handlerDataReceived(jdata: String, senderMac: String?= null){
         val meshPacket = try {
             gson.fromJson(jdata, Packet::class.java)
         } catch (e: Exception) {
@@ -74,7 +74,7 @@ class MeshApplicationRouter(
 
             if(meshPacket.ttl > 0){
                 val forwardPacket = meshPacket.copy(ttl = meshPacket.ttl - 1)
-                bleConnection.broadcastToNeighbors(gson.toJson(forwardPacket))
+                bleConnection.broadcastToNeighbors(gson.toJson(forwardPacket), senderMac)
             }
         }
     }
@@ -99,7 +99,7 @@ class MeshApplicationRouter(
             )
 
             database.packetDao().insertPacketLog(packet)
-            bleConnection.broadcastToNeighbors(gson.toJson(packet))
+            bleConnection.broadcastToNeighbors(gson.toJson(packet), null)
         }
     }
 

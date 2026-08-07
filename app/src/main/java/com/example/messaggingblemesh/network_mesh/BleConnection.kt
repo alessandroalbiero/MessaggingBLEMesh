@@ -21,6 +21,7 @@ import android.os.ParcelUuid
 import android.util.Log
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.concurrent.thread
 
 @SuppressLint("MissingPermission")
 class BleConnection(private val context: Context) {
@@ -115,7 +116,7 @@ class BleConnection(private val context: Context) {
                                 Log.e("BLELayer", "Errore hardware durante sendResponse", e)
                             }
                         }
-                        router?.handlerDataReceived(receivedJsonPacket)
+                        router?.handlerDataReceived(receivedJsonPacket, device.address)
                     }
                 }
             }
@@ -132,7 +133,7 @@ class BleConnection(private val context: Context) {
                     if(data != null){
                         val receivedJson = String(data, Charsets.UTF_8)
                         Log.d("BLELayer", "Pacchetto lungo senza canale allargato inviato e ricomposto")
-                        router?.handlerDataReceived(receivedJson)
+                        router?.handlerDataReceived(receivedJson, device.address)
                     }
                 }
 
@@ -195,21 +196,28 @@ class BleConnection(private val context: Context) {
         bluetoothAdapter.bluetoothLeScanner?.stopScan(scanCallback)
     }
 
-    fun broadcastToNeighbors(jpayload: String){
+    fun broadcastToNeighbors(jpayload: String, exludeMac: String? = null){
         val payloadBytes = jpayload.toByteArray(Charsets.UTF_8)
 
-        val esp32Node = ownNeighbors.find { it.address.equals(esp32ForThesisAddress) }
+        val esp32Node = ownNeighbors.find { it.address == esp32ForThesisAddress }
 
-        val targetNeighbors = if(esp32Node != null) {
+        val targetNeighbors = if(esp32Node != null && exludeMac != esp32ForThesisAddress) {
             Log.d(
                 "BLELayer",
-                "TOPOLOGIA FORZATA: esp32 presenete nella rete, routin intermedio filtrato!"
+                "TOPOLOGIA FORZATA: esp32 presenete nella rete, routing intermedio filtrato!"
             )
             listOf(esp32Node)
-        }else{
-            Log.d("BLELayer", "TOPOLOGIA STANDARD: esp32 lontano o spento, Broadcast standard verso tutti i vicini")
-            ownNeighbors.toList()
         }
+        else{
+            Log.d("BLELayer", "TOPOLOGIA STANDARD: esp32 lontano o spento, Broadcast standard verso tutti i vicini")
+            ownNeighbors.filter{ it.address != exludeMac}
+        }
+
+        if (targetNeighbors.isEmpty()) {
+            Log.d("BLELayer", "Nessun vicino valido a cui inoltrare.")
+            return
+        }
+
         targetNeighbors.toList().forEach { neighbor ->
                 @Suppress("DEPRECATION")
                 neighbor.connectGatt(context, false, object : BluetoothGattCallback() {
@@ -217,6 +225,7 @@ class BleConnection(private val context: Context) {
                         if (status != BluetoothGatt.GATT_SUCCESS) {
                             Log.e("BLELayer", "Errore di connessione con ${neighbor.address}: $status")
                             gatt?.close()
+                            return
                         }
                         if (newState == BluetoothProfile.STATE_CONNECTED) {
                             Log.d(
@@ -231,14 +240,7 @@ class BleConnection(private val context: Context) {
                     }
 
                     override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
-                        if(status == BluetoothGatt.GATT_SUCCESS){
-                            Log.d("BLELayer", "MTU espanso, scoperta servizi...")
-                            gatt?.discoverServices()
-                        } else {
-                            Log.e("BLELayer", "Fallimento cambio MTU per ${gatt?.device?.address}")
-                            gatt?.disconnect()
-                            gatt?.close()
-                        }
+                        if(status == BluetoothGatt.GATT_SUCCESS) gatt?.discoverServices() else gatt?.disconnect()
                     }
 
                     override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
@@ -247,25 +249,51 @@ class BleConnection(private val context: Context) {
                             val characteristic = service?.getCharacteristic(MESH_CHARACTERISTIC_UUID)
 
                             if(characteristic != null) {
-                                try {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        val statusCode = gatt.writeCharacteristic(
-                                            characteristic,
-                                            payloadBytes,
-                                            BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                                thread {
+                                    try {
+                                        val chunksize = 400
+                                        var offset = 0
+                                        while (offset < payloadBytes.size) {
+                                            val end =
+                                                (offset + chunksize).coerceAtMost(payloadBytes.size)
+                                            val chunk = payloadBytes.copyOfRange(offset, end)
+
+                                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                                val statusCode = gatt.writeCharacteristic(
+                                                    characteristic,
+                                                    chunk,
+                                                    BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                                                )
+                                                Log.d(
+                                                    "BLELayer",
+                                                    "Tentativo di scrittura Android 13+. Status: $statusCode"
+                                                )
+                                            } else {
+                                                @Suppress("DEPRECATION")
+                                                characteristic.value = chunk
+                                                characteristic.writeType =
+                                                    BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
+                                                @Suppress("DEPRECATION")
+                                                val success =
+                                                    gatt.writeCharacteristic(characteristic)
+                                                Log.d(
+                                                    "BLELayer",
+                                                    "Tentativo di scrittura Legacy. Esito: $success"
+                                                )
+                                            }
+                                            offset = end
+                                            Thread.sleep(60)
+                                        }
+                                        Log.d("BLELayer", "Tutti i frammenti entrati nel buffer!")
+                                        Thread.sleep(300)
+                                        gatt.disconnect()
+                                    } catch (e: SecurityException) {
+                                        Log.e(
+                                            "BLELayer",
+                                            "Permessi Bluetooth negati durante la scrittura!"
                                         )
-                                        Log.d("BLELayer", "Tentativo di scrittura Android 13+. Status: $statusCode")
-                                    } else {
-                                        @Suppress("DEPRECATION")
-                                        characteristic.value = payloadBytes
-                                        characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
-                                        @Suppress("DEPRECATION")
-                                        val success = gatt.writeCharacteristic(characteristic)
-                                        Log.d("BLELayer", "Tentativo di scrittura Legacy. Esito: $success")
+                                        gatt.disconnect()
                                     }
-                                } catch (e: SecurityException) {
-                                    Log.e("BLELayer", "Permessi Bluetooth negati durante la scrittura!")
-                                    gatt.disconnect()
                                 }
                             } else {
                                 Log.d("BLELayer", "Caratteristica non trovata sul vicino ${gatt?.device?.address}, chiusura connessione...")
@@ -281,18 +309,7 @@ class BleConnection(private val context: Context) {
                         gatt: BluetoothGatt?,
                         characteristic: BluetoothGattCharacteristic?,
                         status: Int
-                    ) {
-                        handleWritingResult(gatt, status)
-                    }
-
-                    private fun handleWritingResult(gatt: BluetoothGatt?, status: Int) {
-                        if (status == BluetoothGatt.GATT_SUCCESS) {
-                            Log.d("BLELayer", "Messaggio inviato con successo a ${gatt?.device?.address}")
-                        } else {
-                            Log.e("BLELayer", "Errore durante l'invio a ${gatt?.device?.address}: $status")
-                        }
-                        gatt?.disconnect()
-                    }
+                    ) {}
                 })
         }
     }

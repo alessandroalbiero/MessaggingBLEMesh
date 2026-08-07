@@ -1,5 +1,7 @@
 package com.example.messaggingblemesh.screens.chat
 
+import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -10,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +23,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -27,6 +34,7 @@ fun SingleChatPage(
     contactId: String,
     onBackClick: () -> Unit
 ) {
+    val scope =  rememberCoroutineScope()
     val context = LocalContext.current
     val viewModel: SingleChatViewmodel = viewModel(
         factory = SingleChatViewmodel.ChatViewModelFactory(
@@ -38,6 +46,7 @@ fun SingleChatPage(
     val contact by viewModel.contact.collectAsState()
     val messages by viewModel.messages.collectAsState(initial = emptyList())
     var content by remember { mutableStateOf("") }
+    var isSimulating by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -51,6 +60,28 @@ fun SingleChatPage(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (isSimulating) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier
+                                .padding(end = 16.dp)
+                                .size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        IconButton(onClick = {
+                            isSimulating = true
+                            scope.launch {
+                                startTrafficSimulation(context, viewModel) {
+                                    isSimulating = false
+                                }
+                            }
+                        }) {
+                            Icon(Icons.Filled.PlayCircle, contentDescription = "Avvia Bot", tint = Color.White)
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -149,6 +180,56 @@ fun MessageBubble(content: String, isMine: Boolean){
                 text = content,
                 color = if (isMine) Color.White else Color.Black
             )
+        }
+    }
+}
+
+suspend fun startTrafficSimulation(
+    context: Context,
+    viewModel: SingleChatViewmodel,
+    onComplete: () -> Unit
+) {
+    withContext(Dispatchers.IO) {
+        try {
+            Log.d("SIMULATOR", "Caricamento dataset NLP in corso...")
+
+            val rawLines = context.assets.open("conversations_it.txt").bufferedReader().readLines()
+            val messagesList = mutableListOf<String>()
+
+            for (line in rawLines) {
+                if (line.isNotBlank()) {
+                    val textPart = line.substringBefore("\t")
+                    val utterances = textPart.split("__eou__")
+                    for (u in utterances) {
+                        val cleanMsg = u.trim()
+                        if (cleanMsg.isNotEmpty()) {
+                            messagesList.add(cleanMsg)
+                        }
+                    }
+                }
+            }
+
+            Log.d("SIMULATOR", "Dataset elaborato! Estratte ${messagesList.size} frasi. Inizio invio...")
+
+            for (i in 1..3000) {
+                val randomText = messagesList.random()
+
+                viewModel.sendMessage(randomText, false)
+
+                val humanDelayMs = (5000..13000).random().toLong()
+
+                Log.d("SIMULATOR", "[$i/3000] Inviato: '$randomText'. Attesa: ${humanDelayMs}ms")
+
+                delay(humanDelayMs)
+            }
+
+            Log.d("SIMULATOR", "SIMULAZIONE COMPLETATA!")
+        } catch (e: Exception) {
+            Log.e("SIMULATOR", "Errore durante la simulazione: ${e.message}")
+        } finally {
+            withContext(Dispatchers.Main) {
+                onComplete()
+            }
         }
     }
 }
