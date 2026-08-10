@@ -32,7 +32,7 @@ object IdsFeaturesExtractor{
         if(globalWindow.size > K_SLIDING_WINDOW_SIZE) {
             globalWindow.removeAt(0)
         }
-        if (globalWindow.size == K_SLIDING_WINDOW_SIZE){
+        if (window.size == K_SLIDING_WINDOW_SIZE){
             val piats = mutableListOf<Long>()
 
             for(i in 1 until window.size){
@@ -53,7 +53,7 @@ object IdsFeaturesExtractor{
             val csvRow = "$payloadEntropy,$piatEntropy,$sizeVariance,$appTtl,$globalPiatEntropy,${packet.label}"
             dataset.add(csvRow)
 
-            return floatArrayOf(payloadEntropy.toFloat(), piatEntropy.toFloat(), sizeVariance.toFloat(), globalPiatEntropy.toFloat(), appTtl)
+            return floatArrayOf(payloadEntropy.toFloat(), piatEntropy.toFloat(), sizeVariance.toFloat(), appTtl, globalPiatEntropy.toFloat())
         }
         return null
     }

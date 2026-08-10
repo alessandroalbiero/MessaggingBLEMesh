@@ -18,6 +18,7 @@ activityCompose = "1.13.0"
 kotlin = "2.4.0"
 composeBom = "2026.06.00"
 navigationComposeVersion = "2.7.7"
+onnxruntimeAndroid = "latest.release"
 paletteKtx = "1.0.0"
 playServicesMlkitSubjectSegmentation = "16.0.0-beta1"
 qrgenerator = "1.0.3"
@@ -78,6 +79,7 @@ androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-te
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
 androidx-compose-material = { group = "androidx.wear.compose", name = "compose-material", version.ref = "composeMaterial" }
+onnxruntime-android = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnxruntimeAndroid" }
 play-services-mlkit-subject-segmentation = { module = "com.google.android.gms:play-services-mlkit-subject-segmentation", version.ref = "playServicesMlkitSubjectSegmentation" }
 qrgenerator = { module = "androidmads.library.qrgenerator:QRGenerator", version.ref = "qrgenerator" }
 vision-common = { group = "com.google.mlkit", name = "vision-common", version.ref = "visionCommon" }

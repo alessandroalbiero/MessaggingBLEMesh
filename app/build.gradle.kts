@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.play.services.mlkit.subject.segmentation)
     implementation(libs.androidx.palette.ktx)
     implementation(libs.firebase.firestore)
+    implementation(libs.onnxruntime.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

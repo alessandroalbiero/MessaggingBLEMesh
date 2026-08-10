@@ -21,4 +21,7 @@ interface PacketDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertPacketLog(packet: Packet)
+
+    @Query("UPDATE packets SET droppedByIds = 1 where packetId = :id")
+    suspend fun updateDroppedIdsStatus(id: String)
 }

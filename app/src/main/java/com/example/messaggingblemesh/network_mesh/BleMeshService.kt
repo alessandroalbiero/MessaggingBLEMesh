@@ -17,6 +17,7 @@ import com.example.messaggingblemesh.security.CryptoHelper
 import java.util.UUID
 import androidx.core.content.edit
 import android.content.pm.ServiceInfo
+import com.example.messaggingblemesh.ids.DualModelIDSInference
 import android.util.Log
 
 class BleMeshService: Service(){
@@ -25,6 +26,7 @@ class BleMeshService: Service(){
     private lateinit var router : MeshApplicationRouter
     private lateinit var bleConnection: BleConnection
     private lateinit var meshDatabase: MeshDatabase
+    private lateinit var idsInference: DualModelIDSInference
     private var nodeId =""
     private var isServiceRunning = false
 
@@ -62,7 +64,8 @@ class BleMeshService: Service(){
         bleConnection = BleConnection(applicationContext)
         nodeId = getNodeId()
         meshDatabase = MeshDatabase.getDatabase(applicationContext)
-        router = MeshApplicationRouter(nodeId, bleConnection, meshDatabase, cryptoHelper)
+        idsInference = DualModelIDSInference(applicationContext)
+        router = MeshApplicationRouter(nodeId, bleConnection, meshDatabase, cryptoHelper, idsInference)
         bleConnection.router = router
         routerInstance = router
         registerReceiver(bluethootStateReceiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
@@ -97,6 +100,10 @@ class BleMeshService: Service(){
         super.onDestroy()
         bleConnection.stopScanningForNeighbors()
         bleConnection.stopAdvertising()
+
+        if(::idsInference.isInitialized){
+            idsInference.close()
+        }
         unregisterReceiver(bluethootStateReceiver)
     }
 

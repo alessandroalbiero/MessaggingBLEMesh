@@ -1,10 +1,10 @@
 package com.example.messaggingblemesh.network_mesh
 
-import android.content.Context
 import android.util.Log
 import com.example.messaggingblemesh.data.local.MeshDatabase
 import com.example.messaggingblemesh.data.local.entities.Message
 import com.example.messaggingblemesh.data.local.entities.Packet
+import com.example.messaggingblemesh.ids.DualModelIDSInference
 import com.example.messaggingblemesh.security.CryptoHelper
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
@@ -16,18 +16,29 @@ class MeshApplicationRouter(
     private val nodeId: String,
     private val bleConnection: BleConnection,
     private val database: MeshDatabase,
-    private val cryptoHelper: CryptoHelper
+    private val cryptoHelper: CryptoHelper,
+    private val idsInference: DualModelIDSInference
 ){
     private val gson = Gson()
     private val scope = CoroutineScope(Dispatchers.IO)
 
+    private val maliciousStrikes = mutableMapOf<String, Int>()
+    private val blacklistedNodes = mutableSetOf<String>()
+    private val MAX_STRIKES = 5
+
     var onMessageReceived: ((Message) -> Unit)? = null
 
     fun handlerDataReceived(jdata: String, senderMac: String?= null){
+
         val meshPacket = try {
             gson.fromJson(jdata, Packet::class.java)
         } catch (e: Exception) {
             Log.e("MeshRouter", "Ricevuti dati corrotti: $jdata")
+            return
+        }
+
+        if(blacklistedNodes.contains(meshPacket.sourceId)){
+            Log.e("MeshRouter", "BLOCCO DI SICUREZZA: pacchetto ingorato derivante da possibile nodo malevolo ${meshPacket.sourceId}")
             return
         }
 
@@ -38,7 +49,25 @@ class MeshApplicationRouter(
             }
 
             database.packetDao().insertPacketLog(meshPacket)
+
             val featuresForAi = IdsFeaturesExtractor.getFeaturesFromPacket(meshPacket)
+            if (featuresForAi != null) {
+                val isMalicious = idsInference.analyzePacket(featuresForAi)
+                if (isMalicious == 1) {
+                    Log.w("MeshRouter", "IDS ha rilevato un pacchetto malevolo! DROP PACKET")
+                    database.packetDao().updateDroppedIdsStatus(meshPacket.packetId)
+
+                    val strikes = (maliciousStrikes[meshPacket.sourceId] ?: 0) + 1
+                    maliciousStrikes[meshPacket.sourceId] = strikes
+                    if (strikes >= MAX_STRIKES) {
+                        blacklistedNodes.add(meshPacket.sourceId)
+                        Log.e("MeshRouter", "Nodo ${meshPacket.sourceId} aggiunto alla BLACKLIST dopo $strikes strike")
+                    }
+                    return@launch
+                }
+            } else {
+                Log.d("MeshRouter", "Finestra non ancora piena, pacchetto accettato di default")
+            }
 
             if (meshPacket.destId == nodeId) {
                 Log.d("MeshRouter", "Pacchetto arrivato al destinatario!")
@@ -59,8 +88,6 @@ class MeshApplicationRouter(
                             destinationId = meshPacket.destId,
                             timestamp = meshPacket.timestamp
                         )
-
-
 
                         database.messageDao().insertMessage(message)
                         onMessageReceived?.invoke(message)
